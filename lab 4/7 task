@@ -1,0 +1,145 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация аккаунта</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 40px;
+        }
+
+        form {
+            width: 400px;
+            margin: auto;
+            padding: 25px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #message {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+
+<form id="registrationForm">
+    <h2>Регистрация аккаунта</h2>
+
+    <label for="login">Логин:</label>
+    <input type="text" id="login" placeholder="Введите логин">
+
+    <label for="email">E-mail:</label>
+    <input type="email" id="email" placeholder="Введите e-mail">
+
+    <label for="password">Пароль:</label>
+    <input type="password" id="password" placeholder="Введите пароль">
+
+    <label for="confirmPassword">Повторите пароль:</label>
+    <input type="password" id="confirmPassword" placeholder="Повторите пароль">
+
+    <button type="submit">Зарегистрироваться</button>
+
+    <p id="message"></p>
+</form>
+
+<script>
+    const form = document.getElementById('registrationForm');
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const login = document.getElementById('login').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const message = document.getElementById('message');
+
+        // Проверка логина
+        if (login === '') {
+            message.textContent = 'Введите логин';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка e-mail
+        if (email === '') {
+            message.textContent = 'Введите e-mail';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка пароля
+        if (password === '') {
+            message.textContent = 'Введите пароль';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка длины пароля
+        if (password.length < 8) {
+            message.textContent = 'Пароль должен содержать не менее 8 символов';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка повторного пароля
+        if (confirmPassword === '') {
+            message.textContent = 'Повторите пароль';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка совпадения паролей
+        if (password !== confirmPassword) {
+            message.textContent = 'Пароли не совпадают';
+            message.className = 'error';
+            return;
+        }
+
+        // Все проверки пройдены
+        message.textContent = 'Регистрация прошла успешно!';
+        message.className = 'success';
+    });
+</script>
+
+</body>
+</html>
+```
