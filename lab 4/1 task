@@ -1,0 +1,139 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация студента</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            padding: 40px;
+        }
+
+        form {
+            width: 400px;
+            margin: auto;
+            padding: 25px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px #ccc;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px;
+            box-sizing: border-box;
+        }
+
+        .checkbox {
+            width: auto;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #message {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+
+<body>
+
+<form id="studentForm">
+    <h2>Регистрация студента</h2>
+
+    <label for="fullname">ФИО:</label>
+    <input type="text" id="fullname" placeholder="Введите ФИО">
+
+    <label for="email">E-mail:</label>
+    <input type="email" id="email" placeholder="Введите e-mail">
+
+    <label for="course">Курс:</label>
+    <select id="course">
+        <option value="">Выберите курс</option>
+        <option value="1">1 курс</option>
+        <option value="2">2 курс</option>
+        <option value="3">3 курс</option>
+        <option value="4">4 курс</option>
+    </select>
+
+    <label>
+        <input type="checkbox" id="agree" class="checkbox">
+        Согласен с правилами
+    </label>
+
+    <button type="submit">Зарегистрироваться</button>
+
+    <p id="message"></p>
+</form>
+
+<script>
+    const form = document.getElementById('studentForm');
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const fullname = document.getElementById('fullname').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const course = document.getElementById('course').value;
+        const agree = document.getElementById('agree').checked;
+        const message = document.getElementById('message');
+
+        // Проверка ФИО
+        if (fullname === '') {
+            message.textContent = 'Введите ФИО';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка e-mail
+        if (email === '') {
+            message.textContent = 'Введите e-mail';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка курса
+        if (course === '') {
+            message.textContent = 'Выберите курс';
+            message.className = 'error';
+            return;
+        }
+
+        // Проверка согласия
+        if (!agree) {
+            message.textContent = 'Подтвердите согласие с правилами';
+            message.className = 'error';
+            return;
+        }
+
+        // Все поля заполнены
+        message.textContent = 'Форма заполнена корректно!';
+        message.className = 'success';
+    });
+</script>
+
+</body>
+</html>
+```
