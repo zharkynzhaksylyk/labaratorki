@@ -1,0 +1,80 @@
+```javascript
+let tasks = [];
+
+function addTask() {
+    const input = document.getElementById("taskInput");
+    const taskText = input.value.trim();
+
+    if (taskText === "") {
+        alert("Введите задачу!");
+        return;
+    }
+
+    tasks.push({
+        text: taskText,
+        completed: false
+    });
+
+    input.value = "";
+
+    showTasks();
+}
+
+function showTasks() {
+    const taskList = document.getElementById("taskList");
+
+    taskList.innerHTML = "";
+
+    for (let i = 0; i < tasks.length; i++) {
+        const li = document.createElement("li");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = tasks[i].completed;
+
+        checkbox.onchange = function () {
+            tasks[i].completed = checkbox.checked;
+            showTasks();
+        };
+
+        const text = document.createElement("span");
+        text.textContent = " " + tasks[i].text + " ";
+
+        if (tasks[i].completed) {
+            text.style.textDecoration = "line-through";
+        }
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Удалить";
+
+        deleteButton.onclick = function () {
+            tasks.splice(i, 1);
+            showTasks();
+        };
+
+        li.appendChild(checkbox);
+        li.appendChild(text);
+        li.appendChild(deleteButton);
+
+        taskList.appendChild(li);
+    }
+
+    updateCounter();
+}
+
+function updateCounter() {
+    let completed = 0;
+    let uncompleted = 0;
+
+    for (let i = 0; i < tasks.length; i++) {
+        if (tasks[i].completed) {
+            completed++;
+        } else {
+            uncompleted++;
+        }
+    }
+
+    document.getElementById("completedCount").textContent = completed;
+    document.getElementById("uncompletedCount").textContent = uncompleted;
+}
+```
