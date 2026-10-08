@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Список товаров</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Список товаров</h1>
+  <input id="itemInput" type="text" placeholder="Название товара">
+  <button id="addBtn">Добавить</button>
+  <p id="error"></p>
+  <ul id="list"></ul>
+  <p id="total"></p>
+  <script src="script.js"></script>
+</body>
+</html>
