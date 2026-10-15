@@ -1,0 +1,82 @@
+const statuses = {
+  new: { title: "Новые", next: "progress", nextLabel: "Взять в работу", prev: null },
+  progress: { title: "В работе", next: "done", nextLabel: "Отметить готовым", prev: "new", prevLabel: "Вернуть в новые" },
+  done: { title: "Готовые", next: null, prev: "progress", prevLabel: "Вернуть в работу" }
+};
+
+const orders = [
+  { id: 101, customer: "Алия Нурланова", item: "Пицца Маргарита", total: 2500, status: "new" },
+  { id: 102, customer: "Данияр Сейтов", item: "Суши-сет", total: 4800, status: "new" },
+  { id: 103, customer: "Мария Ким", item: "Бургер и картофель", total: 3100, status: "progress" },
+  { id: 104, customer: "Ерлан Абенов", item: "Паста Карбонара", total: 2900, status: "done" }
+];
+
+const content = document.querySelector("#content");
+const tabs = document.querySelectorAll("[data-page]");
+let currentPage = "new";
+
+function el(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+
+function setStatus(id, status) {
+  const order = orders.find(o => o.id === id);
+  order.status = status;
+  render();
+}
+
+function orderCard(order) {
+  const rule = statuses[order.status];
+  const card = el("article", undefined, "card");
+  card.append(
+    el("h3", "Заказ №" + order.id),
+    el("p", "Клиент: " + order.customer),
+    el("p", order.item),
+    el("p", "Сумма: " + order.total + " ₸")
+  );
+  const actions = el("div", undefined, "actions");
+  if (rule.prev) {
+    const back = el("button", rule.prevLabel, "btn outline");
+    back.addEventListener("click", () => setStatus(order.id, rule.prev));
+    actions.append(back);
+  }
+  if (rule.next) {
+    const forward = el("button", rule.nextLabel, "btn");
+    forward.addEventListener("click", () => setStatus(order.id, rule.next));
+    actions.append(forward);
+  }
+  card.append(actions);
+  return card;
+}
+
+function render() {
+  Object.keys(statuses).forEach(key => {
+    document.querySelector('[data-count="' + key + '"]').textContent =
+      orders.filter(o => o.status === key).length;
+  });
+  tabs.forEach(b => {
+    const active = b.dataset.page === currentPage;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", active);
+  });
+  const list = orders.filter(o => o.status === currentPage);
+  if (list.length === 0) {
+    content.replaceChildren(el("div", "В разделе «" + statuses[currentPage].title + "» заказов нет.", "empty"));
+    return;
+  }
+  const grid = el("div", undefined, "grid");
+  list.forEach(o => grid.append(orderCard(o)));
+  content.replaceChildren(grid);
+}
+
+function showPage(name) {
+  currentPage = statuses[name] ? name : "new";
+  history.replaceState(null, "", "#" + currentPage);
+  render();
+}
+
+tabs.forEach(btn => btn.addEventListener("click", () => showPage(btn.dataset.page)));
+showPage(location.hash.slice(1));
