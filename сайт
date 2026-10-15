@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Бронирование переговорных комнат</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f1f5f9;
+    color: #1e293b;
+}
+header {
+    background: #14283d;
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+nav {
+    background: #244b70;
+    padding: 15px;
+    text-align: center;
+}
+nav a {
+    color: white;
+    text-decoration: none;
+    margin: 15px;
+}
+.hero {
+    text-align: center;
+    padding: 45px 20px;
+    background: #dceaf7;
+}
+.hero h1 {
+    font-size: 32px;
+}
+.container {
+    max-width: 1100px;
+    margin: auto;
+    padding: 25px;
+}
+.rooms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px #0001;
+}
+.card h3 {
+    color: #244b70;
+}
+button {
+    background: #244b70;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+button:hover {
+    background: #14283d;
+}
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 15px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+}
+form {
+    max-width: 500px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+}
+#message {
+    text-align: center;
+    color: green;
+    font-weight: bold;
+    margin-top: 20px;
+}
+footer {
+    background: #14283d;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 30px;
+}
+</style>
+</head>
+<body>
+<header>
+    <h1>RoomBook</h1>
+    <p>Система бронирования переговорных комнат</p>
+</header>
+<nav>
+    <a href="#home">Главная</a>
+    <a href="#rooms">Комнаты</a>
+    <a href="#booking">Бронирование</a>
+</nav>
+<section class="hero" id="home">
+    <h1>Забронируйте переговорную комнату</h1>
+    <p>Удобное место для встреч, презентаций и командной работы.</p>
+    <a href="#rooms">
+        <button>Выбрать комнату</button>
+    </a>
+</section>
+<div class="container" id="rooms">
+    <h2>Наши переговорные комнаты</h2>
+    <div class="rooms">
+        <div class="card">
+            <h3>Комната №1</h3>
+            <p>Вместимость: 4 человека</p>
+            <p>Площадь: 15 м²</p>
+            <p>Оборудование: Wi-Fi, телевизор</p>
+            <h3>2000 ₸ / час</h3>
+            <button onclick="chooseRoom('Комната №1', 2000)">
+                Забронировать
+            </button>
+        </div>
+        <div class="card">
+            <h3>Комната №2</h3>
+            <p>Вместимость: 10 человек</p>
+            <p>Площадь: 25 м²</p>
+            <p>Оборудование: Wi-Fi, проектор</p>
+            <h3>3500 ₸ / час</h3>
+            <button onclick="chooseRoom('Комната №2', 3500)">
+                Забронировать
+            </button>
+        </div>
+        <div class="card">
+            <h3>Комната №3</h3>
+            <p>Вместимость: 20 человек</p>
+            <p>Площадь: 40 м²</p>
+            <p>Оборудование: Wi-Fi, экран, проектор</p>
+            <h3>5000 ₸ / час</h3>
+            <button onclick="chooseRoom('Комната №3', 5000)">
+                Забронировать
+            </button>
+        </div>
+    </div>
+</div>
+<div class="container" id="booking">
+    <h2 style="text-align:center">Форма бронирования</h2>
+    <form id="bookingForm">
+        <label>Выбранная комната</label>
+        <select id="room" required>
+            <option value="Комната №1" data-price="2000">
+                Комната №1
+            </option>
+            <option value="Комната №2" data-price="3500">
+                Комната №2
+            </option>
+            <option value="Комната №3" data-price="5000">
+                Комната №3
+            </option>
+        </select>
+        <label>Ваше имя</label>
+        <input type="text" id="name" placeholder="Введите имя" required>
+        <label>Электронная почта</label>
+        <input type="email" id="email" placeholder="Введите email" required>
+        <label>Дата бронирования</label>
+        <input type="date" id="date" required>
+        <label>Время начала</label>
+        <input type="time" id="time" value="10:00" required>
+        <label>Количество часов</label>
+        <select id="hours">
+            <option value="1">1 час</option>
+            <option value="2">2 часа</option>
+            <option value="3">3 часа</option>
+            <option value="4">4 часа</option>
+        </select>
+        <h3 id="total">Стоимость: 2000 ₸</h3>
+        <button type="submit">Подтвердить бронирование</button>
+        <div id="message"></div>
+    </form>
+</div>
+<div class="container">
+    <h2>Мои бронирования</h2>
+    <div id="bookings">
+        <p>Пока нет бронирований.</p>
+    </div>
+</div>
+<footer>
+    <p>© 2026 RoomBook</p>
+    <p>Система бронирования переговорных комнат</p>
+</footer>
+<script>
+const roomSelect = document.getElementById("room");
+const hoursSelect = document.getElementById("hours");
+const total = document.getElementById("total");
+const message = document.getElementById("message");
+const bookingsBlock = document.getElementById("bookings");
+document.getElementById("date").min =
+    new Date().toLocaleDateString("en-CA");
+function getPrice() {
+    return Number(
+        roomSelect.options[roomSelect.selectedIndex]
+        .dataset.price
+    );
+}
+function updateTotal() {
+    const price = getPrice() * Number(hoursSelect.value);
+    total.textContent = "Стоимость: " + price + " ₸";
+}
+function chooseRoom(name, price) {
+    roomSelect.value = name;
+    updateTotal();
+    document.getElementById("booking").scrollIntoView({
+        behavior: "smooth"
+    });
+}
+roomSelect.addEventListener("change", updateTotal);
+hoursSelect.addEventListener("change", updateTotal);
+let bookings = JSON.parse(
+    localStorage.getItem("roomBookings") || "[]"
+);
+function showBookings() {
+    if (bookings.length === 0) {
+        bookingsBlock.innerHTML = "<p>Пока нет бронирований.</p>";
+        return;
+    }
+    bookingsBlock.innerHTML = "";
+    bookings.forEach(function (booking) {
+        const item = document.createElement("div");
+        item.className = "card";
+        const title = document.createElement("h3");
+        title.textContent = booking.room;
+        const details = document.createElement("p");
+        details.textContent =
+            booking.name + " | " + booking.date +
+            " | " + booking.time + " | " +
+            booking.hours + " ч. | " +
+            booking.price + " ₸";
+        item.append(title, details);
+        bookingsBlock.appendChild(item);
+    });
+}
+document.getElementById("bookingForm")
+.addEventListener("submit", function(event) {
+    event.preventDefault();
+    const date = document.getElementById("date").value;
+    if (date < new Date().toLocaleDateString("en-CA")) {
+        alert("Выберите сегодняшнюю или будущую дату.");
+        return;
+    }
+    const booking = {
+        room: roomSelect.value,
+        name: document.getElementById("name").value,
+        email: document.getElementById("email").value,
+        date: date,
+        time: document.getElementById("time").value,
+        hours: Number(hoursSelect.value),
+        price: getPrice() * Number(hoursSelect.value)
+    };
+    bookings.push(booking);
+    localStorage.setItem(
+        "roomBookings",
+        JSON.stringify(bookings)
+    );
+    message.textContent =
+        "Бронирование успешно создано! Стоимость: " +
+        booking.price + " ₸";
+    showBookings();
+    this.reset();
+    updateTotal();
+});
+showBookings();
+updateTotal();
+</script>
+</body>
+</html>
