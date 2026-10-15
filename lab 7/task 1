@@ -1,0 +1,77 @@
+const data = {
+  projects: [
+    { title: "Калькулятор", description: "Консольное приложение на C++.", tags: ["C++", "ООП"] },
+    { title: "To-Do список", description: "Список задач на чистом JavaScript.", tags: ["JS", "DOM"] },
+    { title: "Сайт-визитка", description: "Адаптивная страница на HTML и CSS.", tags: ["HTML", "CSS"] }
+  ],
+  skills: [
+    { name: "HTML/CSS", level: 80 },
+    { name: "JavaScript", level: 65 },
+    { name: "C++", level: 55 },
+    { name: "Git", level: 50 }
+  ],
+  about: "Студент, изучаю технологии программирования. Интересуюсь веб-разработкой."
+};
+const content = document.querySelector("#content");
+const tabs = document.querySelectorAll("[data-page]");
+function el(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+async function loadProjects() {
+  const response = await fetch("data/projects.json");
+  if (!response.ok) throw new Error("HTTP " + response.status);
+  return response.json();
+}
+async function renderProjects() {
+  const box = document.createDocumentFragment();
+  let projects = data.projects;
+  try {
+    projects = await loadProjects();
+  } catch (err) {
+    box.append(el("div", "Не удалось загрузить projects.json (" + err.message +
+      "). Показаны встроенные данные.", "error"));
+  }
+  const grid = el("div", undefined, "grid");
+  projects.forEach(p => {
+    const card = el("article", undefined, "card");
+    card.append(el("h3", p.title), el("p", p.description));
+    p.tags.forEach(t => card.append(el("span", t, "tag")));
+    grid.append(card);
+  });
+  box.append(grid);
+  return box;
+}
+function renderSkills() {
+  const box = document.createDocumentFragment();
+  data.skills.forEach(s => {
+    const row = el("div", undefined, "skill");
+    const bar = el("div", undefined, "bar");
+    const fill = document.createElement("span");
+    fill.style.width = s.level + "%";
+    bar.append(fill);
+    row.append(el("div", s.name + " — " + s.level + "%"), bar);
+    box.append(row);
+  });
+  return box;
+}
+function renderAbout() {
+  return el("p", data.about);
+}
+const views = { projects: renderProjects, skills: renderSkills, about: renderAbout };
+async function showPage(name) {
+  if (!views[name]) name = "projects";
+  tabs.forEach(b => {
+    const active = b.dataset.page === name;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", active);
+  });
+  content.textContent = "Загрузка...";
+  const view = await views[name]();
+  content.replaceChildren(view);
+  history.replaceState(null, "", "#" + name);
+}
+tabs.forEach(btn => btn.addEventListener("click", () => showPage(btn.dataset.page)));
+showPage(location.hash.slice(1) || "projects");
