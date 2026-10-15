@@ -1,0 +1,202 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Управление мероприятиями</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f3f4fb;
+    color: #292943;
+    max-width: 800px;
+    margin: 30px auto;
+    padding: 15px;
+}
+header {
+    background: #29264b;
+    color: white;
+    padding: 20px;
+    border-radius: 14px;
+}
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0;
+}
+button {
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    background: white;
+}
+button.active, .primary {
+    background: #635bff;
+    color: white;
+}
+.panel {
+    background: white;
+    padding: 20px;
+    border-radius: 14px;
+}
+input, select {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0 15px;
+}
+.card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 12px;
+    margin: 10px 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+    <h1>EventHub</h1>
+    <p>Управление мероприятиями</p>
+</header>
+
+<nav class="tabs">
+    <button class="active" data-tab="events">События</button>
+    <button data-tab="registration">Регистрация</button>
+    <button data-tab="participants">Участники</button>
+</nav>
+
+<main id="app-content"></main>
+
+<script>
+const events = [
+    {id: 1, title: "Веб-разработка", date: "10 ноября", seats: 30},
+    {id: 2, title: "Основы JavaScript", date: "15 ноября", seats: 25},
+    {id: 3, title: "UI/UX-дизайн", date: "20 ноября", seats: 20}
+];
+
+const participants = [];
+const content = document.getElementById("app-content");
+const buttons = document.querySelectorAll("[data-tab]");
+
+buttons.forEach(button => {
+    button.addEventListener("click", () => {
+        buttons.forEach(item => item.classList.toggle("active", item === button));
+        render(button.dataset.tab);
+    });
+});
+
+function render(tab) {
+    content.replaceChildren();
+    const panel = document.createElement("section");
+    panel.className = "panel";
+    content.append(panel);
+
+    if (tab === "events") {
+        panel.innerHTML = `
+            <h2>События</h2>
+            <input id="search" placeholder="Поиск мероприятий...">
+            <div id="list"></div>
+        `;
+
+        const search = panel.querySelector("#search");
+        const list = panel.querySelector("#list");
+
+        function showEvents() {
+            list.replaceChildren();
+            const found = events.filter(e =>
+                e.title.toLowerCase().includes(search.value.trim().toLowerCase())
+            );
+
+            if (!found.length) {
+                list.textContent = "Мероприятия не найдены.";
+                return;
+            }
+
+            found.forEach(e => {
+                const card = document.createElement("div");
+                card.className = "card";
+                card.textContent = `${e.title} — ${e.date}. Свободных мест: ${e.seats}`;
+                list.append(card);
+            });
+        }
+
+        search.addEventListener("input", showEvents);
+        showEvents();
+    }
+
+    if (tab === "registration") {
+        panel.innerHTML = `
+            <h2>Регистрация</h2>
+            <form id="form">
+                <label>Имя и фамилия
+                    <input id="name" required minlength="2">
+                </label>
+                <label>Email
+                    <input id="email" type="email" required>
+                </label>
+                <label>Мероприятие
+                    <select id="event" required>
+                        <option value="">Выберите мероприятие</option>
+                        ${events.map(e => `<option value="${e.id}">${e.title}</option>`).join("")}
+                    </select>
+                </label>
+                <button class="primary" type="submit">Зарегистрироваться</button>
+            </form>
+            <p id="message" aria-live="polite"></p>
+        `;
+
+        panel.querySelector("#form").addEventListener("submit", e => {
+            e.preventDefault();
+
+            const name = panel.querySelector("#name").value.trim();
+            const email = panel.querySelector("#email").value.trim();
+            const eventId = Number(panel.querySelector("#event").value);
+            const message = panel.querySelector("#message");
+
+            if (name.length < 2 || !email || !eventId) {
+                message.textContent = "Заполните все поля правильно.";
+                return;
+            }
+
+            const event = events.find(item => item.id === eventId);
+            if (participants.some(p => p.email.toLowerCase() === email.toLowerCase() && p.eventId === eventId)) {
+                message.textContent = "Вы уже зарегистрированы на это мероприятие.";
+                return;
+            }
+
+            if (event.seats <= 0) {
+                message.textContent = "Свободных мест нет.";
+                return;
+            }
+
+            participants.push({name, email, eventId});
+            event.seats--;
+            message.textContent = "Регистрация успешно выполнена!";
+            e.target.reset();
+        });
+    }
+
+    if (tab === "participants") {
+        panel.innerHTML = "<h2>Участники</h2>";
+        if (!participants.length) {
+            panel.innerHTML += "<p>Пока нет зарегистрированных участников.</p>";
+        }
+
+        participants.forEach(p => {
+            const card = document.createElement("div");
+            card.className = "card";
+            const event = events.find(e => e.id === p.eventId);
+            card.textContent = `${p.name} — ${p.email} — ${event.title}`;
+            panel.append(card);
+        });
+    }
+}
+
+render("events");
+</script>
+</body>
+</html>
