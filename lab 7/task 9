@@ -1,0 +1,137 @@
+const courses = [
+  { id: 1, title: "Основы программирования", teacher: "Иванов А.А.", hours: 36, seats: 3, description: "Переменные, условия, циклы, функции." },
+  { id: 2, title: "Веб-разработка", teacher: "Петрова М.С.", hours: 48, seats: 5, description: "HTML5, CSS3 и JavaScript без фреймворков." },
+  { id: 3, title: "Базы данных", teacher: "Сидоров К.Н.", hours: 40, seats: 1, description: "Реляционная модель и язык SQL." },
+  { id: 4, title: "Алгоритмы и структуры данных", teacher: "Ким Д.Е.", hours: 52, seats: 0, description: "Сортировки, деревья, графы." }
+];
+
+const info = [
+  "Запись на курс выполняется кнопкой «Записаться» без перезагрузки страницы.",
+  "Число свободных мест уменьшается после записи и увеличивается после отмены.",
+  "Список ваших курсов сохраняется в браузере и доступен после обновления страницы."
+];
+
+const content = document.querySelector("#content");
+const tabs = document.querySelectorAll("[data-page]");
+const badge = document.querySelector("#badge");
+const STORAGE_KEY = "enrolledCourses";
+
+function loadEnrolled() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveEnrolled() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(enrolled));
+  } catch {}
+}
+
+let enrolled = loadEnrolled().filter(id => courses.some(c => c.id === id));
+enrolled.forEach(id => { courses.find(c => c.id === id).seats -= 1; });
+let currentPage = "courses";
+let message = "";
+
+function el(tag, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  return node;
+}
+
+function enroll(id) {
+  const course = courses.find(c => c.id === id);
+  if (enrolled.includes(id) || course.seats <= 0) return;
+  enrolled.push(id);
+  course.seats -= 1;
+  message = "Вы записались на курс «" + course.title + "».";
+  saveEnrolled();
+  render();
+}
+
+function leave(id) {
+  const course = courses.find(c => c.id === id);
+  enrolled = enrolled.filter(x => x !== id);
+  course.seats += 1;
+  message = "Запись на курс «" + course.title + "» отменена.";
+  saveEnrolled();
+  render();
+}
+
+function courseCard(course, mine) {
+  const card = el("article", undefined, "card");
+  card.append(
+    el("h3", course.title),
+    el("p", course.description),
+    el("p", "Преподаватель: " + course.teacher, "meta"),
+    el("p", "Часов: " + course.hours + (mine ? "" : " · Свободных мест: " + course.seats), "meta")
+  );
+  const btn = el("button", undefined, "btn");
+  if (mine) {
+    btn.textContent = "Отписаться";
+    btn.classList.add("outline");
+    btn.addEventListener("click", () => leave(course.id));
+  } else if (enrolled.includes(course.id)) {
+    btn.textContent = "Вы записаны";
+    btn.disabled = true;
+  } else if (course.seats <= 0) {
+    btn.textContent = "Мест нет";
+    btn.disabled = true;
+  } else {
+    btn.textContent = "Записаться";
+    btn.addEventListener("click", () => enroll(course.id));
+  }
+  card.append(btn);
+  return card;
+}
+
+function renderCourses() {
+  const grid = el("div", undefined, "grid");
+  courses.forEach(c => grid.append(courseCard(c, false)));
+  return grid;
+}
+
+function renderMy() {
+  const mine = courses.filter(c => enrolled.includes(c.id));
+  if (mine.length === 0) {
+    return el("div", "Вы пока не записаны ни на один курс. Перейдите на вкладку «Курсы».", "empty");
+  }
+  const grid = el("div", undefined, "grid");
+  mine.forEach(c => grid.append(courseCard(c, true)));
+  return grid;
+}
+
+function renderInfo() {
+  const list = document.createElement("ul");
+  info.forEach(text => list.append(el("li", text)));
+  return list;
+}
+
+const views = { courses: renderCourses, my: renderMy, info: renderInfo };
+
+function render() {
+  tabs.forEach(b => {
+    const active = b.dataset.page === currentPage;
+    b.classList.toggle("active", active);
+    b.setAttribute("aria-selected", active);
+  });
+  badge.textContent = enrolled.length;
+  const nodes = [];
+  if (message) nodes.push(el("div", message, "notice"));
+  nodes.push(views[currentPage]());
+  content.replaceChildren(...nodes);
+}
+
+function showPage(name) {
+  currentPage = views[name] ? name : "courses";
+  message = "";
+  history.replaceState(null, "", "#" + currentPage);
+  render();
+}
+
+tabs.forEach(btn => btn.addEventListener("click", () => showPage(btn.dataset.page)));
+showPage(location.hash.slice(1));
