@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Канбан-доска</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <header class="header">
+        <h1>📋 Моя канбан-доска</h1>
+        <p>Планируйте задачи и отслеживайте прогресс</p>
+    </header>
+
+    <main class="container">
+        <form id="taskForm" class="task-form">
+            <input
+                type="text"
+                id="taskTitle"
+                placeholder="Название задачи"
+                maxlength="120"
+                required
+            >
+
+            <textarea
+                id="taskDescription"
+                placeholder="Описание задачи (необязательно)"
+                maxlength="500"
+                rows="2"
+            ></textarea>
+
+            <button type="submit">+ Добавить карточку</button>
+        </form>
+
+        <p id="saveStatus" class="save-status" aria-live="polite"></p>
+
+        <section class="board" aria-label="Канбан-доска">
+            <div class="column" data-status="plan">
+                <h2>📌 План <span class="count">0</span></h2>
+                <div class="task-list" id="planList"></div>
+            </div>
+
+            <div class="column" data-status="progress">
+                <h2>⚙️ В работе <span class="count">0</span></h2>
+                <div class="task-list" id="progressList"></div>
+            </div>
+
+            <div class="column" data-status="done">
+                <h2>✅ Готово <span class="count">0</span></h2>
+                <div class="task-list" id="doneList"></div>
+            </div>
+        </section>
+
+        <div class="board-footer">
+            <span id="totalCount">Всего карточек: 0</span>
+            <button id="clearAll" class="clear-button" type="button">
+                Очистить доску
+            </button>
+        </div>
+
+        <p class="hint">
+            💡 Перетаскивайте карточки мышью между колонками,
+            чтобы менять статус задачи.
+        </p>
+    </main>
+</body>
+</html>
