@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do — Список задач</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Мои задачи</h1>
+
+        <div class="input-group">
+            <input
+                type="text"
+                id="taskInput"
+                placeholder="Введите новую задачу"
+            >
+            <button id="addButton">Добавить</button>
+        </div>
+
+        <div class="filters">
+            <button class="filter active" data-filter="all">Все</button>
+            <button class="filter" data-filter="active">Активные</button>
+            <button class="filter" data-filter="completed">Выполненные</button>
+        </div>
+
+        <ul id="taskList"></ul>
+
+        <p id="emptyMessage">Задач пока нет</p>
+
+        <div class="footer">
+            <span id="taskCounter">Всего задач: 0</span>
+            <button id="clearCompleted">Удалить выполненные</button>
+        </div>
+    </div>
+</body>
+</html>
