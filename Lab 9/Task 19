@@ -1,0 +1,111 @@
+index.html
+<!doctype html>
+<html lang="ru">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Лаб. работа №9: поиск публикаций</title>
+ <link rel="stylesheet" href="style.css">
+ <script src="app.js" defer></script>
+</head>
+<body>
+ <h1>Поиск публикаций</h1>
+ <p class="hint">Вариант 19: debounce + AbortController (JSONPlaceholder /posts)</p>
+ 
+ <input id="search" type="search" placeholder="Введите слово, например: qui" autocomplete="off">
+ 
+ <p id="status" role="status"></p>
+ <button id="retry" hidden>Повторить</button>
+ <p id="time"></p>
+ 
+ <ul id="results"></ul>
+</body>
+</html>
+ 
+style.css
+body { font-family: Arial, sans-serif; max-width: 700px;
+ margin: 30px auto; padding: 0 16px; line-height: 1.4; }
+.hint { color: #666; margin-top: -8px; }
+input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 16px; }
+button { padding: 8px 14px; cursor: pointer; }
+#status.loading { color: #b36b00; }
+#status.success { color: #1a7f37; }
+#status.error { color: #c62828; }
+#time { color: #666; font-size: 14px; }
+ul { padding: 0; list-style: none; }
+li { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+li h3 { margin: 0 0 6px; font-size: 16px; }
+li p { margin: 0; color: #444; font-size: 14px; }
+ 
+app.js
+const API = 'https://jsonplaceholder.typicode.com/posts';
+const DELAY = 500; // задержка debounce, мс
+ 
+const input = document.querySelector('#search');
+const statusEl = document.querySelector('#status');
+const retryBtn = document.querySelector('#retry');
+const timeEl = document.querySelector('#time');
+const results = document.querySelector('#results');
+ 
+let controller = null; // для отмены предыдущего запроса
+let timerId = null;    // таймер debounce
+let lastQuery = '';
+ 
+function setStatus(type, text) {
+ statusEl.className = type;
+ statusEl.textContent = text;
+}
+ 
+function render(posts) {
+ results.replaceChildren();
+ for (const post of posts) {
+   const li = document.createElement('li');
+   const title = document.createElement('h3');
+   const body = document.createElement('p');
+   title.textContent = `${post.id}. ${post.title}`; // безопасно: textContent
+   body.textContent = post.body;
+   li.append(title, body);
+   results.append(li);
+ }
+}
+ 
+async function search(query) {
+ lastQuery = query;
+ if (controller) controller.abort(); // отмена предыдущего запроса
+ controller = new AbortController();
+ 
+ setStatus('loading', 'Загрузка...');
+ retryBtn.hidden = true;
+ timeEl.textContent = '';
+ results.replaceChildren();
+ 
+ const url = `${API}?_limit=10` + (query ? `&q=${encodeURIComponent(query)}` : '');
+ const start = performance.now();
+ 
+ try {
+   const response = await fetch(url, { signal: controller.signal });
+   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+   const posts = await response.json();
+ 
+   timeEl.textContent = `Время ответа: ${Math.round(performance.now() - start)} мс`;
+   if (posts.length === 0) {
+     setStatus('success', 'Ничего не найдено');
+     return;
+   }
+   render(posts);
+   setStatus('success', `Найдено: ${posts.length}`);
+ } catch (error) {
+   if (error.name === 'AbortError') return; // отмена — не ошибка
+   setStatus('error', `Ошибка загрузки: ${error.message}`);
+   retryBtn.hidden = false;
+ }
+}
+ 
+input.addEventListener('input', () => {
+ clearTimeout(timerId);
+ timerId = setTimeout(() => search(input.value.trim()), DELAY);
+});
+ 
+retryBtn.addEventListener('click', () => search(lastQuery));
+ 
+search(''); // первая загрузка
