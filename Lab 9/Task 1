@@ -1,0 +1,78 @@
+index.html
+<!doctype html>
+<html lang="ru">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Вариант 1: список публикаций</title>
+ <link rel="stylesheet" href="style.css">
+ <script src="app.js" defer></script>
+</head>
+<body>
+ <h1>Публикации</h1>
+ <p class="hint">Вариант 1: 10 публикаций (ID и заголовок)</p>
+ <button id="load">Загрузить</button>
+ <button id="retry" hidden>Повторить</button>
+ <p id="status" role="status"></p>
+ <p id="time"></p>
+ <ul id="results"></ul>
+</body>
+</html>
+ 
+style.css
+body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; line-height: 1.4; }
+.hint { color: #666; margin-top: -8px; }
+input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 16px; margin-bottom: 8px; }
+button { padding: 8px 14px; cursor: pointer; }
+#status.loading { color: #b36b00; }
+#status.success { color: #1a7f37; }
+#status.error { color: #c62828; }
+#time { color: #666; font-size: 14px; }
+ul { padding: 0; list-style: none; }
+li { margin: 8px 0; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+ 
+app.js
+const URL_POSTS = 'https://jsonplaceholder.typicode.com/posts?_limit=10';
+ 
+const loadBtn = document.querySelector('#load');
+const retryBtn = document.querySelector('#retry');
+const statusEl = document.querySelector('#status');
+const timeEl = document.querySelector('#time');
+const results = document.querySelector('#results');
+ 
+function setStatus(type, text) {
+ statusEl.className = type;
+ statusEl.textContent = text;
+}
+ 
+async function loadPosts() {
+ loadBtn.disabled = true;
+ retryBtn.hidden = true;
+ setStatus('loading', 'Загрузка...');
+ timeEl.textContent = '';
+ results.replaceChildren();
+ const start = performance.now();
+ 
+ try {
+   const response = await fetch(URL_POSTS);
+   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+   const posts = await response.json();
+ 
+   for (const post of posts) {
+     const li = document.createElement('li');
+     li.textContent = `${post.id}. ${post.title}`;
+     results.append(li);
+   }
+   setStatus('success', `Загружено: ${posts.length}`);
+   timeEl.textContent = `Время ответа: ${Math.round(performance.now() - start)} мс`;
+ } catch (error) {
+   setStatus('error', `Ошибка загрузки: ${error.message}`);
+   retryBtn.hidden = false;
+ } finally {
+   loadBtn.disabled = false;
+ }
+}
+ 
+loadBtn.addEventListener('click', loadPosts);
+retryBtn.addEventListener('click', loadPosts);
+ 
