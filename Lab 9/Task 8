@@ -1,0 +1,93 @@
+index.html
+<!doctype html>
+<html lang="ru">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Вариант 8: поиск по заголовку</title>
+ <link rel="stylesheet" href="style.css">
+ <script src="app.js" defer></script>
+</head>
+<body>
+ <h1>Публикации</h1>
+ <p class="hint">Вариант 8: поиск по заголовку на клиенте после загрузки</p>
+ <button id="load">Загрузить</button>
+ <button id="retry" hidden>Повторить</button>
+ <input id="search" type="search" placeholder="Поиск по заголовку" disabled>
+ <p id="status" role="status"></p>
+ <ul id="results"></ul>
+</body>
+</html>
+ 
+style.css
+body { font-family: Arial, sans-serif; max-width: 700px; margin: 30px auto; padding: 0 16px; line-height: 1.4; }
+.hint { color: #666; margin-top: -8px; }
+input { width: 100%; box-sizing: border-box; padding: 10px; font-size: 16px; margin-bottom: 8px; }
+button { padding: 8px 14px; cursor: pointer; }
+#status.loading { color: #b36b00; }
+#status.success { color: #1a7f37; }
+#status.error { color: #c62828; }
+#time { color: #666; font-size: 14px; }
+ul { padding: 0; list-style: none; }
+li { margin: 8px 0; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+ 
+app.js
+const URL_POSTS = 'https://jsonplaceholder.typicode.com/posts';
+ 
+const loadBtn = document.querySelector('#load');
+const retryBtn = document.querySelector('#retry');
+const search = document.querySelector('#search');
+const statusEl = document.querySelector('#status');
+const results = document.querySelector('#results');
+ 
+let allPosts = [];
+ 
+function setStatus(type, text) {
+ statusEl.className = type;
+ statusEl.textContent = text;
+}
+ 
+function render(posts) {
+ results.replaceChildren();
+ for (const post of posts) {
+   const li = document.createElement('li');
+   li.textContent = `${post.id}. ${post.title}`;
+   results.append(li);
+ }
+}
+ 
+// Фильтрация без нового запроса к серверу
+function applyFilter() {
+ const q = search.value.trim().toLowerCase();
+ const filtered = allPosts.filter(p => p.title.toLowerCase().includes(q));
+ render(filtered);
+ setStatus('success', filtered.length
+   ? `Показано: ${filtered.length} из ${allPosts.length}`
+   : 'Ничего не найдено');
+}
+ 
+async function loadPosts() {
+ loadBtn.disabled = true;
+ retryBtn.hidden = true;
+ search.disabled = true;
+ setStatus('loading', 'Загрузка...');
+ results.replaceChildren();
+ 
+ try {
+   const response = await fetch(URL_POSTS);
+   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+   allPosts = await response.json();
+   search.disabled = false;
+   applyFilter();
+ } catch (error) {
+   setStatus('error', `Ошибка загрузки: ${error.message}`);
+   retryBtn.hidden = false;
+ } finally {
+   loadBtn.disabled = false;
+ }
+}
+ 
+loadBtn.addEventListener('click', loadPosts);
+retryBtn.addEventListener('click', loadPosts);
+search.addEventListener('input', applyFilter);
+ 
