@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban доска</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+    <h1>Моя Kanban доска</h1>
+
+    <div class="add-form">
+        <input id="taskInput" placeholder="Новая задача">
+        <button id="addButton">Добавить задачу</button>
+    </div>
+
+    <p id="message" aria-live="polite"></p>
+
+    <main class="board">
+        <section class="column">
+            <h2>К выполнению</h2>
+            <div id="todo" class="task-list"></div>
+        </section>
+
+        <section class="column">
+            <h2>В работе</h2>
+            <div id="progress" class="task-list"></div>
+        </section>
+
+        <section class="column">
+            <h2>Готово</h2>
+            <div id="done" class="task-list"></div>
+        </section>
+    </main>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    margin: 0;
+    padding: 25px;
+}
+
+h1 {
+    text-align: center;
+    color: #1e40af;
+}
+
+.add-form {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 25px;
+}
+
+input {
+    padding: 12px;
+    width: 280px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+button {
+    padding: 10px 15px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.column {
+    background: #dbeafe;
+    padding: 15px;
+    border-radius: 10px;
+    min-height: 300px;
+}
+
+.column h2 {
+    text-align: center;
+    font-size: 18px;
+}
+
+.task {
+    background: white;
+    padding: 12px;
+    border-radius: 7px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.task p {
+    overflow-wrap: anywhere;
+}
+
+.task button {
+    margin: 3px;
+    padding: 7px;
+    font-size: 12px;
+}
+
+.delete {
+    background: #dc2626;
+}
+
+@media (max-width: 700px) {
+    .board {
+        grid-template-columns: 1fr;
+    }
+
+    .add-form {
+        flex-wrap: wrap;
+    }
+}
+
+const STORAGE_KEY = "kanban_tasks";
+
+export function saveTasks(tasks) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        return true;
+    } catch (error) {
+        console.error("Ошибка сохранения:", error);
+        return false;
+    }
+}
+
+export function loadTasks() {
+    try {
+        const data = localStorage.getItem(STORAGE_KEY);
+
+        if (!data) return [];
+
+        const tasks = JSON.parse(data);
+
+        if (!Array.isArray(tasks)) return [];
+
+        return tasks.filter(task =>
+            task &&
+            Number.isInteger(task.id) &&
+            typeof task.title === "string" &&
+            COLUMNS_IDS.includes(task.column)
+        );
+    } catch (error) {
+        console.error("Ошибка загрузки:", error);
+        return [];
+    }
+}
+
+import { COLUMNS } from "./columns.js";
+
+const COLUMNS_IDS = COLUMNS.map(column => column.id);
