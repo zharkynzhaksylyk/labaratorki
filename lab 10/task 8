@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Список задач</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Мой список задач</h1>
+
+        <div class="form">
+            <input id="taskInput" type="text" placeholder="Введите задачу">
+            <button id="addButton">Добавить</button>
+        </div>
+
+        <p id="message" aria-live="polite"></p>
+        <ul id="taskList"></ul>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    margin: 0;
+    padding: 40px 15px;
+}
+
+.container {
+    max-width: 550px;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2563eb;
+}
+
+.form {
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+
+ul {
+    padding: 0;
+    list-style: none;
+}
+
+li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-top: 10px;
+    background: #f1f5f9;
+    border-radius: 6px;
+}
+
+li.completed span {
+    text-decoration: line-through;
+    color: gray;
+}
+
+.delete {
+    background: #dc2626;
+}
+
+let tasks = [];
+let nextId = 1;
+
+export function getTasks() {
+    return tasks;
+}
+
+export function addTask(title) {
+    const cleanTitle = title.trim();
+
+    if (!cleanTitle) {
+        return false;
+    }
+
+    tasks.push({
+        id: nextId++,
+        title: cleanTitle,
+        completed: false
+    });
+
+    return true;
+}
+
+export function deleteTask(id) {
+    tasks = tasks.filter(task => task.id !== id);
+}
+
+export function toggleTask(id) {
+    const task = tasks.find(task => task.id === id);
+
+    if (task) {
+        task.completed = !task.completed;
+    }
+}
