@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер температур</title>
+    <link rel="stylesheet" href="./styles/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Конвертер температур</h1>
+
+        <label for="temperature">Введите температуру:</label>
+        <input type="number" id="temperature" placeholder="Например, 25">
+
+        <label for="operation">Выберите операцию:</label>
+        <select id="operation">
+            <option value="cToF">Цельсий → Фаренгейт</option>
+            <option value="fToC">Фаренгейт → Цельсий</option>
+            <option value="cToK">Цельсий → Кельвин</option>
+        </select>
+
+        <button id="convert">Конвертировать</button>
+
+        <p id="result" aria-live="polite"></p>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
+ 
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 350px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #2563eb;
+}
+
+label {
+    display: block;
+    margin-top: 15px;
+}
+
+input, select, button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+button:hover {
+    background: #1d4ed8;
+}
+
+#result {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 20px;
+}
+
+import {
+    celsiusToFahrenheit,
+    fahrenheitToCelsius,
+    celsiusToKelvin
+} from "./modules/temperature.js";
+
+const temperatureInput = document.querySelector("#temperature");
+const operation = document.querySelector("#operation");
+const convertButton = document.querySelector("#convert");
+const result = document.querySelector("#result");
+
+convertButton.addEventListener("click", convertTemperature);
+
+temperatureInput.addEventListener("input", () => {
+    result.textContent = "";
+});
+
+function convertTemperature() {
+    const value = temperatureInput.value.trim();
+
+    if (value === "") {
+        result.textContent = "Ошибка: введите температуру!";
+        return;
+    }
+
+    const temperature = Number(value);
+
+    if (!Number.isFinite(temperature)) {
+        result.textContent = "Ошибка: некорректное число!";
+        return;
+    }
+
+    const selectedOperation = operation.value;
+    let converted;
+    let unit;
+
+    if (selectedOperation === "cToF") {
+        if (temperature < -273.15) {
+            result.textContent = "Температура не может быть ниже абсолютного нуля!";
+            return;
+        }
+
+        converted = celsiusToFahrenheit(temperature);
+        unit = "°F";
+    } else if (selectedOperation === "fToC") {
+        if (temperature < -459.67) {
+            result.textContent = "Температура не может быть ниже абсолютного нуля!";
+            return;
+        }
+
+        converted = fahrenheitToCelsius(temperature);
+        unit = "°C";
+    } else {
+        if (temperature < -273.15) {
+            result.textContent = "Температура не может быть ниже абсолютного нуля!";
+            return;
+        }
+
+        converted = celsiusToKelvin(temperature);
+        unit = "K";
+    }
+
+    result.textContent =
+        `Результат: ${converted.toFixed(2)} ${unit}`;
+}
