@@ -1,0 +1,179 @@
+import { useState } from 'react';
+
+/* ========== БАЗОВЫЙ, вариант 7: карточка товара ========== */
+function ProductCard({ name, price }) {
+  const [qty, setQty] = useState(0);
+  return (
+    <section className="card">
+      <h3>{name}</h3>
+      <p>Цена: {price} ₸</p>
+      <p>Выбрано: <b>{qty}</b> шт. — Итого: <b>{qty * price}</b> ₸</p>
+      <div className="row">
+        <button onClick={() => setQty(q => q + 1)}>+1</button>
+        <button onClick={() => setQty(q => Math.max(0, q - 1))} disabled={qty === 0}>−1</button>
+        <button onClick={() => setQty(0)}>Сброс</button>
+      </div>
+      {qty === 0 && <p className="hint">Товар не выбран</p>}
+    </section>
+  );
+}
+
+function BasicProduct() {
+  return (
+    <div>
+      <h2>Вариант 7. Карточка товара</h2>
+      <div className="grid">
+        <ProductCard name="Ноутбук" price={350000} />
+        <ProductCard name="Мышь" price={8000} />
+      </div>
+    </div>
+  );
+}
+
+/* ========== СРЕДНИЙ, вариант 8: список задач ========== */
+function TodoItem({ text, done, onToggle, onDelete }) {
+  return (
+    <li className={done ? 'todo done' : 'todo'}>
+      <label>
+        <input type="checkbox" checked={done} onChange={onToggle} /> {text}
+      </label>
+      <button className="small" onClick={onDelete}>✕</button>
+    </li>
+  );
+}
+
+function MediumTodo() {
+  const [tasks, setTasks] = useState([
+    { id: 1, text: 'Прочитать теорию', done: true },
+    { id: 2, text: 'Сделать лабораторную', done: false },
+  ]);
+  const [input, setInput] = useState('');
+  const [error, setError] = useState('');
+
+  const addTask = e => {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) { setError('Введите текст задачи'); return; }
+    setTasks(prev => [...prev, { id: Date.now(), text, done: false }]);
+    setInput('');
+    setError('');
+  };
+  const toggle = id => setTasks(prev => prev.map(t => (t.id === id ? { ...t, done: !t.done } : t)));
+  const remove = id => setTasks(prev => prev.filter(t => t.id !== id));
+  const doneCount = tasks.filter(t => t.done).length;
+
+  return (
+    <div>
+      <h2>Вариант 8. Список задач</h2>
+      <form className="row" onSubmit={addTask}>
+        <input value={input} onChange={e => setInput(e.target.value)} placeholder="Новая задача" />
+        <button type="submit">Добавить</button>
+      </form>
+      {error && <p className="error">{error}</p>}
+      <p>Выполнено: {doneCount} из {tasks.length}</p>
+      {tasks.length === 0 ? <p className="hint">Задач нет</p> : (
+        <ul className="list">
+          {tasks.map(t => (
+            <TodoItem key={t.id} text={t.text} done={t.done}
+              onToggle={() => toggle(t.id)} onDelete={() => remove(t.id)} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ========== ПОВЫШЕННЫЙ, вариант 16: планировщик расходов ========== */
+const CATEGORIES = ['Еда', 'Транспорт', 'Учеба', 'Развлечения'];
+
+function ExpenseForm({ categories, onAdd }) {
+  const [title, setTitle] = useState('');
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState(categories[0]);
+  const [error, setError] = useState('');
+
+  const submit = e => {
+    e.preventDefault();
+    const value = Number(amount);
+    if (!title.trim()) return setError('Введите название расхода');
+    if (!amount || Number.isNaN(value) || value <= 0) return setError('Сумма должна быть больше 0');
+    onAdd({ id: Date.now(), title: title.trim(), amount: value, category });
+    setTitle(''); setAmount(''); setError('');
+  };
+
+  return (
+    <form className="form" onSubmit={submit}>
+      <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Название" />
+      <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Сумма" />
+      <select value={category} onChange={e => setCategory(e.target.value)}>
+        {categories.map(c => <option key={c}>{c}</option>)}
+      </select>
+      <button type="submit">Добавить</button>
+      {error && <p className="error">{error}</p>}
+    </form>
+  );
+}
+
+function ExpenseList({ items, onDelete }) {
+  if (items.length === 0) return <p className="hint">Расходов нет</p>;
+  return (
+    <ul className="list">
+      {items.map(x => (
+        <li key={x.id} className="todo">
+          <span>{x.title} · <i>{x.category}</i> · <b>{x.amount} ₸</b></span>
+          <button className="small" onClick={() => onDelete(x.id)}>✕</button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AdvancedExpenses() {
+  const [expenses, setExpenses] = useState([]);
+  const [filter, setFilter] = useState('Все');
+
+  const visible = filter === 'Все' ? expenses : expenses.filter(x => x.category === filter);
+  const total = visible.reduce((sum, x) => sum + x.amount, 0);
+
+  return (
+    <div>
+      <h2>Вариант 16. Планировщик расходов</h2>
+      <ExpenseForm categories={CATEGORIES} onAdd={x => setExpenses(prev => [...prev, x])} />
+      <div className="row">
+        <label>Фильтр:&nbsp;
+          <select value={filter} onChange={e => setFilter(e.target.value)}>
+            {['Все', ...CATEGORIES].map(c => <option key={c}>{c}</option>)}
+          </select>
+        </label>
+        <b>Всего: {total} ₸</b>
+      </div>
+      <ExpenseList items={visible} onDelete={id => setExpenses(prev => prev.filter(x => x.id !== id))} />
+    </div>
+  );
+}
+
+/* ========== ГЛАВНЫЙ КОМПОНЕНТ ========== */
+const TABS = [
+  { id: 'basic', label: 'Базовый (№7)' },
+  { id: 'medium', label: 'Средний (№8)' },
+  { id: 'advanced', label: 'Повышенный (№16)' },
+];
+
+export default function App() {
+  const [tab, setTab] = useState('basic');
+  return (
+    <main className="app">
+      <h1>Лабораторная работа № 11</h1>
+      <nav className="tabs">
+        {TABS.map(t => (
+          <button key={t.id} className={tab === t.id ? 'tab active' : 'tab'} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+      {tab === 'basic' && <BasicProduct />}
+      {tab === 'medium' && <MediumTodo />}
+      {tab === 'advanced' && <AdvancedExpenses />}
+    </main>
+  );
+}
