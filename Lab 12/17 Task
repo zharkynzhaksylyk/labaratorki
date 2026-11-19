@@ -1,0 +1,306 @@
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Секрет генерируется в памяти (не хранится в коде/репозитории)
+const JWT_SECRET = crypto.randomBytes(32).toString('hex');
+const ACCESS_EXPIRES_IN = '15s'; // Короткий срок жизни для демонстрации ротации
+const REFRESH_TTL_MS = 10 * 60 * 1000; // 10 минут
+
+const users = [
+  {
+    id: 'u101',
+    login: 'admin17',
+    passwordHash: bcrypt.hashSync('jwtSecret17', 10),
+    role: 'architect',
+    name: 'Касымов Тимур'
+  }
+];
+
+// Хранилище refresh-токенов: token -> { userId, familyId, used, expiresAt }
+const refreshStore = new Map();
+
+function issueTokenPair(user, familyId = crypto.randomUUID()) {
+  const accessToken = jwt.sign(
+    { sub: user.id, role: user.role, name: user.name },
+    JWT_SECRET,
+    { algorithm: 'HS256', expiresIn: ACCESS_EXPIRES_IN, issuer: 'lab12-auth' }
+  );
+
+  const refreshToken = crypto.randomBytes(40).toString('hex');
+  refreshStore.set(refreshToken, {
+    userId: user.id,
+    familyId,
+    used: false,
+    expiresAt: Date.now() + REFRESH_TTL_MS
+  });
+
+  return { accessToken, refreshToken };
+}
+
+function setRefreshCookie(res, token) {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    sameSite: 'strict',
+    path: '/api/auth', // Cookie отправляется только на эндпоинты обновления/выхода
+    maxAge: REFRESH_TTL_MS
+  });
+}
+
+function revokeFamily(familyId) {
+  for (const [token, meta] of refreshStore.entries()) {
+    if (meta.familyId === familyId) {
+      refreshStore.delete(token);
+    }
+  }
+}
+
+// Middleware строгой проверки JWT
+function verifyJwt(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Отсутствует Access Token' });
+  }
+
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, JWT_SECRET, {
+      algorithms: ['HS256'],
+      issuer: 'lab12-auth'
+    });
+    req.user = payload;
+    next();
+  } catch (err) {
+    return res.status(401).json({
+      error: err.name === 'TokenExpiredError' ? 'Access Token истек' : 'Невалидный токен',
+      code: err.name
+    });
+  }
+}
+
+// 1. Вход
+app.post('/api/auth/login', (req, res) => {
+  const { login, password } = req.body;
+  if (!login?.trim() || !password?.trim()) {
+    return res.status(400).json({ error: 'Заполните все поля' });
+  }
+
+  const user = users.find(u => u.login === login.trim());
+  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    return res.status(401).json({ error: 'Неверный логин или пароль' });
+  }
+
+  const { accessToken, refreshToken } = issueTokenPair(user);
+  setRefreshCookie(res, refreshToken);
+  res.json({ accessToken });
+});
+
+// 2. Ротация Refresh Token и выдача нового Access Token
+app.post('/api/auth/refresh', (req, res) => {
+  const oldToken = req.cookies.refreshToken;
+  if (!oldToken || !refreshStore.has(oldToken)) {
+    return res.status(401).json({ error: 'Refresh Token отсутствует или недействителен' });
+  }
+
+  const record = refreshStore.get(oldToken);
+
+  // Обнаружение повторного использования уже ротированного токена (компрометация)
+  if (record.used) {
+    revokeFamily(record.familyId);
+    res.clearCookie('refreshToken', { path: '/api/auth' });
+    return res.status(403).json({ error: 'Обнаружена попытка повторного использования токена. Сессия аннулирована.' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    refreshStore.delete(oldToken);
+    res.clearCookie('refreshToken', { path: '/api/auth' });
+    return res.status(401).json({ error: 'Срок действия Refresh Token истек' });
+  }
+
+  // Помечаем старый токен как использованный (ротация)
+  record.used = true;
+
+  const user = users.find(u => u.id === record.userId);
+  const { accessToken, refreshToken } = issueTokenPair(user, record.familyId);
+  setRefreshCookie(res, refreshToken);
+
+  res.json({ accessToken, rotated: true });
+});
+
+// 3. Защищенный ресурс
+app.get('/api/secure-data', verifyJwt, (req, res) => {
+  res.json({
+    message: 'Доступ к защищенному API подтвержден',
+    user: req.user,
+    serverTime: new Date().toLocaleTimeString()
+  });
+});
+
+// 4. Выход с отзывом всей цепочки токенов
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.cookies.refreshToken;
+  if (token && refreshStore.has(token)) {
+    const { familyId } = refreshStore.get(token);
+    revokeFamily(familyId);
+  }
+  res.clearCookie('refreshToken', { path: '/api/auth' });
+  res.json({ message: 'Выход выполнен, токены отозваны' });
+});
+
+app.listen(3000, () => console.log('Вариант 17 запущен: http://localhost:3000'));
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вариант 17 — JWT + Ротация Refresh Token</title>
+  <style>
+    body { font-family: sans-serif; max-width: 520px; margin: 40px auto; }
+    .box { border: 1px solid #ccc; padding: 20px; border-radius: 6px; }
+    input, button { display: block; width: 100%; margin-top: 10px; padding: 8px; box-sizing: border-box; }
+    pre { background: #f4f4f4; padding: 10px; overflow-x: auto; font-size: 12px; }
+    .error { color: #c00; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="loginView" class="box">
+    <h2>Вход (JWT + Refresh Rotation)</h2>
+    <form id="loginForm" novalidate>
+      <input id="login" placeholder="Логин (admin17)" required>
+      <input id="password" type="password" placeholder="Пароль (jwtSecret17)" required>
+      <button type="submit">Войти</button>
+    </form>
+    <p id="errorMsg" class="error"></p>
+  </div>
+
+  <div id="appView" class="box hidden">
+    <h2>Защищенный раздел</h2>
+    <p><strong>Access Token</strong> (хранится только в RAM, TTL 15 сек):</p>
+    <pre id="tokenPreview"></pre>
+    <button id="fetchDataBtn">Запросить /api/secure-data (авто-обновление при 401)</button>
+    <button id="logoutBtn">Выйти (отозвать токены)</button>
+    <h4>Ответ сервера и журнал ротации:</h4>
+    <pre id="logOutput"></pre>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+// Access Token хранится исключительно в замыкании/переменной памяти (не в localStorage)
+let accessToken = null;
+
+const loginView = document.getElementById('loginView');
+const appView = document.getElementById('appView');
+const errorMsg = document.getElementById('errorMsg');
+const logOutput = document.getElementById('logOutput');
+const tokenPreview = document.getElementById('tokenPreview');
+
+function log(msg) {
+  logOutput.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + logOutput.textContent;
+}
+
+function updateTokenDisplay() {
+  tokenPreview.textContent = accessToken
+    ? `${accessToken.slice(0, 35)}...${accessToken.slice(-20)}`
+    : 'null';
+}
+
+// Обновление пары токенов через HttpOnly Refresh Cookie
+async function refreshAccessToken() {
+  const res = await fetch('/api/auth/refresh', { method: 'POST' });
+  if (!res.ok) {
+    accessToken = null;
+    updateTokenDisplay();
+    return false;
+  }
+  const data = await res.json();
+  accessToken = data.accessToken;
+  updateTokenDisplay();
+  log('Выполнена ротация Refresh Token и получен новый Access Token.');
+  return true;
+}
+
+// Обертка над fetch с автоматическим перехватом 401 и обновлением токена
+async function authFetch(url, options = {}) {
+  const makeRequest = () => fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+    }
+  });
+
+  let res = await makeRequest();
+  if (res.status === 401) {
+    log('Access Token истек или отсутствует (401). Попытка обновления...');
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      res = await makeRequest(); // Повторяем исходный запрос с новым токеном
+    }
+  }
+  return res;
+}
+
+async function loadSecureData() {
+  const res = await authFetch('/api/secure-data');
+  if (!res.ok) {
+    appView.classList.add('hidden');
+    loginView.classList.remove('hidden');
+    return;
+  }
+  const data = await res.json();
+  loginView.classList.add('hidden');
+  appView.classList.remove('hidden');
+  log(`Данные получены: ${data.user.name} (${data.user.role})`);
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorMsg.textContent = '';
+  const login = document.getElementById('login').value;
+  const password = document.getElementById('password').value;
+
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login, password })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    errorMsg.textContent = data.error;
+    return;
+  }
+
+  accessToken = data.accessToken;
+  updateTokenDisplay();
+  logOutput.textContent = '';
+  log('Успешный вход. Выдана первичная пара токенов.');
+  await loadSecureData();
+});
+
+document.getElementById('fetchDataBtn').addEventListener('click', loadSecureData);
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  accessToken = null;
+  updateTokenDisplay();
+  appView.classList.add('hidden');
+  loginView.classList.remove('hidden');
+});
+
+// При обновлении страницы accessToken в RAM сбрасывается, но восстанавливается через HttpOnly cookie
+(async () => {
+  const ok = await refreshAccessToken();
+  if (ok) await loadSecureData();
+})();
