@@ -1,0 +1,205 @@
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const path = require('path');
+
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Время жизни сессии: 30 секунд (для наглядного тестирования)
+const SESSION_TTL_MS = 30 * 1000;
+
+const users = [
+  {
+    id: 1,
+    login: 'user11',
+    passwordHash: bcrypt.hashSync('pass111', 10),
+    name: 'Смирнова Елена',
+    secretNotes: ['Сдать лабораторную №12', 'Подготовить отчет по сессиям']
+  }
+];
+
+const sessions = new Map();
+
+function requireActiveSession(req, res, next) {
+  const sid = req.cookies.sid;
+  if (!sid || !sessions.has(sid)) {
+    return res.status(401).json({ error: 'Сессия не найдена. Выполните вход.' });
+  }
+
+  const session = sessions.get(sid);
+  if (Date.now() > session.expiresAt) {
+    sessions.delete(sid);
+    res.clearCookie('sid');
+    return res.status(401).json({ error: 'Время сессии истекло. Войдите повторно.', expired: true });
+  }
+
+  req.session = session;
+  next();
+}
+
+app.post('/api/login', (req, res) => {
+  const { login, password } = req.body;
+  if (!login?.trim() || !password?.trim()) {
+    return res.status(400).json({ error: 'Введите логин и пароль' });
+  }
+
+  const user = users.find(u => u.login === login.trim());
+  if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
+    return res.status(401).json({ error: 'Неверные учетные данные' });
+  }
+
+  const sid = crypto.randomUUID();
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  sessions.set(sid, { user, expiresAt });
+
+  res.cookie('sid', sid, { httpOnly: true, sameSite: 'lax' });
+  res.json({ message: 'Вход выполнен', expiresAt });
+});
+
+app.get('/api/profile', requireActiveSession, (req, res) => {
+  const remainingSec = Math.max(0, Math.ceil((req.session.expiresAt - Date.now()) / 1000));
+  res.json({
+    name: req.session.user.name,
+    notes: req.session.user.secretNotes,
+    expiresAt: req.session.expiresAt,
+    remainingSec
+  });
+});
+
+app.post('/api/logout', (req, res) => {
+  const sid = req.cookies.sid;
+  if (sid) sessions.delete(sid);
+  res.clearCookie('sid');
+  res.json({ message: 'Сессия завершена' });
+});
+
+app.listen(3000, () => console.log('Вариант 11 запущен: http://localhost:3000'));
+
+
+
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Вариант 11 — Тайм-аут сессии</title>
+  <style>
+    body { font-family: sans-serif; max-width: 450px; margin: 40px auto; }
+    .box { border: 1px solid #ccc; padding: 20px; border-radius: 6px; }
+    input, button { display: block; width: 100%; margin-top: 10px; padding: 8px; box-sizing: border-box; }
+    .timer { background: #eef6ff; padding: 8px; border-radius: 4px; font-weight: bold; }
+    .error { color: #c00; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="loginBox" class="box">
+    <h2>Авторизация</h2>
+    <p id="statusMsg" class="error"></p>
+    <form id="loginForm" novalidate>
+      <input id="login" placeholder="Логин (user11)" required>
+      <input id="password" type="password" placeholder="Пароль (pass111)" required>
+      <button type="submit">Войти</button>
+    </form>
+  </div>
+
+  <div id="profileBox" class="box hidden">
+    <h2>Личный кабинет</h2>
+    <p class="timer">Сессия истечет через: <span id="countdown">--</span> сек.</p>
+    <p>Пользователь: <strong id="userName"></strong></p>
+    <ul id="notesList"></ul>
+    <button id="refreshBtn">Запросить защищенные данные</button>
+    <button id="logoutBtn">Выйти</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
+
+
+const loginBox = document.getElementById('loginBox');
+const profileBox = document.getElementById('profileBox');
+const statusMsg = document.getElementById('statusMsg');
+const countdownEl = document.getElementById('countdown');
+let timerId = null;
+
+function stopTimer() {
+  if (timerId) clearInterval(timerId);
+  timerId = null;
+}
+
+function startTimer(expiresAt) {
+  stopTimer();
+  const update = () => {
+    const left = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+    countdownEl.textContent = left;
+    if (left === 0) {
+      stopTimer();
+      // Принудительно проверяем статус на сервере при обнулении таймера
+      fetchProfile();
+    }
+  };
+  update();
+  timerId = setInterval(update, 1000);
+}
+
+async function fetchProfile() {
+  const res = await fetch('/api/profile');
+  const data = await res.json();
+
+  if (!res.ok) {
+    stopTimer();
+    profileBox.classList.add('hidden');
+    loginBox.classList.remove('hidden');
+    if (data.expired) statusMsg.textContent = data.error;
+    return;
+  }
+
+  document.getElementById('userName').textContent = data.name;
+  const list = document.getElementById('notesList');
+  list.innerHTML = data.notes.map(n => `<li>${n}</li>`).join('');
+
+  loginBox.classList.add('hidden');
+  profileBox.classList.remove('hidden');
+  statusMsg.textContent = '';
+  startTimer(data.expiresAt);
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  statusMsg.textContent = '';
+  const login = document.getElementById('login').value;
+  const password = document.getElementById('password').value;
+
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login, password })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    statusMsg.textContent = data.error;
+    return;
+  }
+  document.getElementById('password').value = '';
+  await fetchProfile();
+});
+
+document.getElementById('refreshBtn').addEventListener('click', fetchProfile);
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  stopTimer();
+  profileBox.classList.add('hidden');
+  loginBox.classList.remove('hidden');
+  statusMsg.textContent = 'Вы успешно вышли из системы.';
+});
+
+fetchProfile();
