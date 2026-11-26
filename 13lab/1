@@ -1,0 +1,64 @@
+import json
+from pathlib import Path
+
+DATA_FILE = Path("shopping_list.json")
+
+
+def load_list() -> list[str]:
+    if not DATA_FILE.exists():
+        return []
+    with DATA_FILE.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data if isinstance(data, list) else []
+
+
+def save_list(items: list[str]) -> None:
+    with DATA_FILE.open("w", encoding="utf-8") as f:
+        json.dump(items, f, ensure_ascii=False, indent=2)
+
+
+def add_item(items: list[str], name: str) -> str:
+    clean = name.strip()
+    if not clean:
+        return "Ошибка: название товара не может быть пустым."
+    items.append(clean)
+    save_list(items)
+    return f"Добавлено: {clean}"
+
+
+def remove_item(items: list[str], name: str) -> str:
+    clean = name.strip()
+    if not items:
+        return "Список покупок пуст, удалять нечего."
+    for idx, existing in enumerate(items):
+        if existing.lower() == clean.lower():
+            removed = items.pop(idx)
+            save_list(items)
+            return f"Удалено: {removed}"
+    return f"Товар '{clean}' не найден в списке."
+
+
+def view_items(items: list[str]) -> str:
+    if not items:
+        return "Список покупок пуст."
+    lines = ["Список покупок:"]
+    for i, item in enumerate(items, start=1):
+        lines.append(f"  {i}. {item}")
+    return "\n".join(lines)
+
+
+def run_demo() -> None:
+    items: list[str] = []
+    print(view_items(items))
+    print(remove_item(items, "Молоко"))
+    print(add_item(items, "Молоко"))
+    print(add_item(items, "Хлеб"))
+    print(add_item(items, "Молоко"))
+    print(view_items(items))
+    print(remove_item(items, "Сыр"))
+    print(remove_item(items, "молоко"))
+    print(view_items(items))
+
+
+if __name__ == "__main__":
+    run_demo()
