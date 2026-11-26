@@ -1,0 +1,65 @@
+11from pathlib import Path
+
+
+def normalize(name: str) -> str:
+    return " ".join(name.strip().split()).casefold()
+
+
+def register_participant(participants: list[str], name: str) -> str:
+    clean = " ".join(name.strip().split())
+    if not clean:
+        return "Ошибка: имя участника не может быть пустым."
+    target = normalize(clean)
+    if any(normalize(p) == target for p in participants):
+        return f"Дубликат: '{clean}' уже зарегистрирован на курс."
+    participants.append(clean)
+    return f"Зарегистрирован: {clean}"
+
+
+def unregister_participant(participants: list[str], name: str) -> str:
+    if not participants:
+        return "Список участников пуст."
+    target = normalize(name)
+    for i, p in enumerate(participants):
+        if normalize(p) == target:
+            removed = participants.pop(i)
+            return f"Удалён из списка: {removed}"
+    return f"Участник '{name.strip()}' не найден."
+
+
+def find_participants(participants: list[str], query: str) -> list[str]:
+    q = normalize(query)
+    if not q:
+        return []
+    return [p for p in participants if q in normalize(p)]
+
+
+def get_sorted_participants(participants: list[str]) -> list[str]:
+    return sorted(participants, key=lambda s: s.casefold())
+
+
+def export_report(participants: list[str], filepath: str = "course_participants.txt") -> str:
+    sorted_list = get_sorted_participants(participants)
+    lines = [f"Всего участников: {len(sorted_list)}", "-" * 30]
+    for idx, name in enumerate(sorted_list, start=1):
+        lines.append(f"{idx}. {name}")
+    Path(filepath).write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return f"Отчёт сохранён в {filepath}"
+
+
+def run_demo() -> None:
+    participants: list[str] = []
+    print("Пустой поиск:", find_participants(participants, "Анна"))
+    print(unregister_participant(participants, "Анна"))
+    print(register_participant(participants, "Смирнов Алексей"))
+    print(register_participant(participants, "Алиева Динара"))
+    print(register_participant(participants, "смирнов алексей"))
+    print("Отсортированный список:", get_sorted_participants(participants))
+    print("Поиск 'дин':", find_participants(participants, "дин"))
+    print(unregister_participant(participants, "Петров Олег"))
+    print(unregister_participant(participants, "Алиева Динара"))
+    print("Итоговый список:", get_sorted_participants(participants))
+
+
+if __name__ == "__main__":
+    run_demo(
