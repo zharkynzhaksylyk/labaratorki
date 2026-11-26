@@ -1,0 +1,84 @@
+from collections import deque
+
+
+class OrderManager:
+    def __init__(self) -> None:
+        self.orders: dict[str, dict] = {}
+        self.queue: deque[str] = deque()
+        self.audit_log: list[str] = []
+
+    def create_order(self, order_id: str, item: str) -> str:
+        oid = order_id.strip()
+        clean_item = item.strip()
+        if not oid or not clean_item:
+            return "Ошибка: ID заказа и товар обязательны."
+        if oid in self.orders:
+            return f"Ошибка: заказ '{oid}' уже существует."
+        self.orders[oid] = {"item": clean_item, "status": "queued"}
+        self.queue.append(oid)
+        msg = f"Создан заказ {oid} ({clean_item})"
+        self.audit_log.append(msg)
+        return msg
+
+    def process_next(self) -> str:
+        while self.queue:
+            oid = self.queue.popleft()
+            order = self.orders.get(oid)
+            if order and order["status"] == "queued":
+                order["status"] = "processed"
+                msg = f"Обработан заказ {oid} ({order['item']})"
+                self.audit_log.append(msg)
+                return msg
+        return "Очередь активных заказов пуста."
+
+    def cancel_order(self, order_id: str) -> str:
+        oid = order_id.strip()
+        order = self.orders.get(oid)
+        if not order:
+            return f"Заказ '{oid}' не найден."
+        if order["status"] == "processed":
+            return f"Нельзя отменить заказ '{oid}': он уже обработан."
+        if order["status"] == "cancelled":
+            return f"Заказ '{oid}' уже отменён."
+        order["status"] = "cancelled"
+        try:
+            self.queue.remove(oid)
+        except ValueError:
+            pass
+        msg = f"Отменён заказ {oid}"
+        self.audit_log.append(msg)
+        return msg
+
+    def check_consistency(self) -> tuple[bool, list[str]]:
+        issues: list[str] = []
+        queued_in_dict = {oid for oid, data in self.orders.items() if data["status"] == "queued"}
+        queued_in_deque = list(self.queue)
+
+        if len(queued_in_deque) != len(set(queued_in_deque)):
+            issues.append("Дубликаты ID в очереди.")
+
+        set_deque = set(queued_in_deque)
+        for oid in set_deque - queued_in_dict:
+            issues.append(f"В очереди есть заказ '{oid}', который не в статусе 'queued' или отсутствует в словаре.")
+        for oid in queued_in_dict - set_deque:
+            issues.append(f"Заказ '{oid}' в статусе 'queued', но отсутствует в очереди.")
+
+        return (len(issues) == 0, issues)
+
+
+def run_demo() -> None:
+    mgr = OrderManager()
+    print(mgr.process_next())
+    print(mgr.create_order("ORD-1", "Клавиатура"))
+    print(mgr.create_order("ORD-2", "Мышь"))
+    print(mgr.create_order("ORD-1", "Монитор"))
+    print(mgr.cancel_order("ORD-1"))
+    print(mgr.process_next())
+    print("Согласованность:", mgr.check_consistency())
+    print(mgr.cancel_order("ORD-2"))
+    print(mgr.cancel_order("ORD-999"))
+    print("Согласованность:", mgr.check_consistency())
+
+
+if __name__ == "__main__":
+    run_demo()
